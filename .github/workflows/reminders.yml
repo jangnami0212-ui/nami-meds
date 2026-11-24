@@ -1,0 +1,44 @@
+name: medication-reminders
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # 5분마다 (GitHub 사정으로 몇 분 늦을 수 있음)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # 60일 동안 커밋이 없으면 예약이 멈추므로, 빈 커밋으로 깨워 두기 위해 필요
+
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: notify/package-lock.json
+      - run: npm ci --omit=dev
+        working-directory: notify
+      - run: node send.mjs
+        working-directory: notify
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FAMILY_ID: ${{ secrets.FAMILY_ID }}
+          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          SITE_URL: https://nami-meds-app.web.app
+      - name: keep the schedule alive
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt 4320000 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "keep reminder schedule active"
+            git push
+          fi
