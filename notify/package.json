@@ -1,0 +1,16 @@
+{
+  "name": "nami-notify",
+  "version": "1.0.0",
+  "description": "",
+  "main": "send.mjs", "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

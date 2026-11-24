@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>나미 투약 수첩</title>
+<meta name="description" content="나미의 약 일정을 가족이 함께 챙기는 투약 수첩">
+<meta name="theme-color" content="#eef8f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1d1a" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="나미 투약">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 153 민트 약국 — 연민트 바탕 위 흰 카드, 행동은 짙은 민트 한 색, 늦은 투약만 호박색. 휴대폰 한 손 사용 기준 한 줄 흐름 + 하단 탭 */
+:root{
+  --bg:#eef8f5; --card:#ffffff; --line:#d3ece4; --fg:#12322b; --muted:#4d6b63; --faint:#6f8a83;
+  --accent:#0b7a63; --accent-fg:#ffffff; --accent-soft:#d9f3ea; --chip-fg:#0b5c4a; --graph:#12a37f;
+  --warn:#8f5200; --warn-bg:#fff2dc; --warn-line:#f1cf92;
+  --cross:#bfe8db; --shadow:0 4px 14px rgba(20,110,90,.08); --overlay:rgba(18,50,43,.38);
+  --m-mint:#12a37f; --m-sky:#2f86d0; --m-peach:#dc6f43; --m-lilac:#8467cc; --m-sun:#c99a0c;
+  --font:"Pretendard","Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --r:16px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1d1a; --card:#162824; --line:#24413a; --fg:#e6f4ef; --muted:#a3c2b9; --faint:#86a59c;
+    --accent:#5fd4b4; --accent-fg:#06261f; --accent-soft:#1c3a33; --chip-fg:#a6ecd8; --graph:#5fd4b4;
+    --warn:#ffc37a; --warn-bg:#3a2a16; --warn-line:#6b4a1f;
+    --cross:#18332d; --shadow:0 4px 14px rgba(0,0,0,.25); --overlay:rgba(0,0,0,.55);
+    --m-mint:#5fd4b4; --m-sky:#7ab8f0; --m-peach:#f2a07f; --m-lilac:#b9a3f0; --m-sun:#f0cd5a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1d1a; --card:#162824; --line:#24413a; --fg:#e6f4ef; --muted:#a3c2b9; --faint:#86a59c;
+  --accent:#5fd4b4; --accent-fg:#06261f; --accent-soft:#1c3a33; --chip-fg:#a6ecd8; --graph:#5fd4b4;
+  --warn:#ffc37a; --warn-bg:#3a2a16; --warn-line:#6b4a1f;
+  --cross:#18332d; --shadow:0 4px 14px rgba(0,0,0,.25); --overlay:rgba(0,0,0,.55);
+  --m-mint:#5fd4b4; --m-sky:#7ab8f0; --m-peach:#f2a07f; --m-lilac:#b9a3f0; --m-sun:#f0cd5a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);margin:0;min-height:100%}
+img{max-width:100%}
+body{color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+.c-mint{--mc:var(--m-mint)} .c-sky{--mc:var(--m-sky)} .c-peach{--mc:var(--m-peach)} .c-lilac{--mc:var(--m-lilac)} .c-sun{--mc:var(--m-sun)}
+
+.app{position:relative;max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(12px + env(safe-area-inset-top,0px)) calc(96px + env(safe-area-inset-bottom,0px));min-height:100%}
+.top .icon-btn{position:relative}
+.bell-on::after{content:"";position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--graph);box-shadow:0 0 0 2px var(--card)}
+.steps{margin:0 0 14px;padding-left:20px;color:var(--fg);font-size:15px}
+.steps li{margin-bottom:6px}
+.info{margin:0 0 14px;color:var(--muted);font-size:14px}
+.okline{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:12px;background:var(--accent-soft);color:var(--chip-fg);font-weight:700;margin-bottom:12px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+/* 둥근 십자 하나 — 톤의 상징 */
+.app::before{content:"";position:absolute;top:-6px;right:-10px;width:120px;height:120px;z-index:0;pointer-events:none;
+  background:linear-gradient(var(--cross),var(--cross)) center/40px 120px no-repeat,linear-gradient(var(--cross),var(--cross)) center/120px 40px no-repeat;border-radius:20px;opacity:.9;
+  -webkit-mask:radial-gradient(circle at center,#000 70%,transparent 71%);mask:radial-gradient(circle at center,#000 70%,transparent 71%)}
+.app>*{position:relative;z-index:1}
+
+.top{display:flex;align-items:center;gap:12px;padding:8px 0 14px}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;flex:none;box-shadow:var(--shadow)}
+.avatar svg{width:28px;height:28px;fill:var(--accent)}
+.who{min-width:0;flex:1}
+.who h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.who p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;flex:none}
+.icon-btn svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (hover:hover){.icon-btn:hover{border-color:var(--accent)}}
+
+.note{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:var(--card);border:1px dashed var(--line);color:var(--muted);font-size:13px}
+.note.warn{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn)}
+
+.week{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.week .icon-btn{width:36px;height:56px;font-size:20px;color:var(--muted)}
+.days{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;min-width:0}
+.day{border:1px solid transparent;background:transparent;border-radius:14px;padding:6px 0 7px;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:56px}
+.day .wd{font-size:11px;color:var(--faint)}
+.day .dn{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.day .dot{width:6px;height:6px;border-radius:50%;margin-top:2px;background:transparent}
+.day .dot.done{background:var(--graph)} .day .dot.part{background:var(--line);box-shadow:inset 0 0 0 1.5px var(--graph)}
+.day .dot.miss{background:var(--warn)} .day .dot.plan{background:var(--line)}
+.day.today .dn{color:var(--accent)}
+.day.sel{background:var(--card);border-color:var(--line);box-shadow:var(--shadow)}
+@media (hover:hover){.day:hover{border-color:var(--line)}}
+
+.summary{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:18px}
+.ring{width:72px;height:72px;flex:none;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{stroke:var(--accent-soft);fill:none}
+.ring .bar{stroke:var(--graph);fill:none;stroke-linecap:round;transition:stroke-dashoffset .5s}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-variant-numeric:tabular-nums}
+.ring b small{font-size:12px;color:var(--faint);font-weight:500}
+.summary h2{margin:0;font-size:17px;line-height:1.35}
+.summary p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.summary p.warn{color:var(--warn);font-weight:500}
+
+.slot{margin-bottom:18px}
+.slot h3{margin:0 0 8px 2px;font-size:13px;font-weight:500;color:var(--faint);letter-spacing:.04em}
+.stack{display:flex;flex-direction:column;gap:8px}
+.dose{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
+.dose.st-late,.dose.st-missed{border-color:var(--warn-line)}
+.dose.st-now{border-color:var(--accent)}
+.dose.st-given,.dose.st-skipped{box-shadow:none}
+.pill{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:color-mix(in srgb,var(--mc) 16%,transparent)}
+.pill svg{width:24px;height:24px}
+.pill .a{fill:var(--mc)} .pill .b{fill:color-mix(in srgb,var(--mc) 35%,var(--card))}
+.dose-main{flex:1;min-width:0}
+.dose-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dose-time{font-size:13px;font-weight:700;color:var(--muted)}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--chip-fg)}
+.tag.late,.tag.missed{background:var(--warn-bg);color:var(--warn)}
+.tag.skipped{background:transparent;border:1px solid var(--line);color:var(--faint)}
+.dose-name{font-size:16px;font-weight:700;margin-top:1px;overflow-wrap:anywhere}
+.dose-amt{font-weight:500;color:var(--muted);margin-left:6px;font-size:14px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chip{font-size:12px;padding:2px 9px;border-radius:99px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.memo{font-size:13px;color:var(--muted);margin-top:6px;overflow-wrap:anywhere}
+.by{margin-top:8px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.by svg{width:16px;height:16px;stroke:var(--graph);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.dose.st-given .dose-name,.dose.st-skipped .dose-name{color:var(--muted)}
+.dose.st-skipped .dose-name{text-decoration:line-through;text-decoration-thickness:1px}
+.acts{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.btn{min-height:44px;border-radius:12px;padding:0 16px;border:1px solid transparent;font-weight:700;font-size:14px;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--fg)}
+.btn.text{background:transparent;color:var(--faint);font-weight:500;min-height:36px;padding:0 6px;font-size:13px}
+.btn.danger{background:transparent;border-color:var(--warn-line);color:var(--warn)}
+.btn.danger.armed{background:var(--warn);color:var(--card);border-color:var(--warn)}
+.btn:disabled{opacity:.5;cursor:default}
+@media (hover:hover){.btn.primary:hover{filter:brightness(1.08)} .btn.ghost:hover{border-color:var(--accent)} .btn.text:hover{color:var(--fg)}}
+.btn:active{transform:translateY(1px)}
+
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:var(--r);padding:28px 20px;text-align:center;color:var(--muted)}
+.empty h3{margin:0 0 6px;color:var(--fg);font-size:17px}
+.empty p{margin:0 0 16px;font-size:14px}
+
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 12px}
+.sec-head h2{margin:0;font-size:19px}
+.sec-label{margin:20px 0 8px 2px;font-size:13px;font-weight:500;color:var(--faint);letter-spacing:.04em}
+.med{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);width:100%;text-align:left}
+@media (hover:hover){.med:hover{border-color:var(--accent)}}
+.med.ended{box-shadow:none;opacity:.72}
+.med .times{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.med .times span{font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px;background:var(--accent-soft);color:var(--chip-fg);font-variant-numeric:tabular-nums}
+.sched{font-size:13px;color:var(--muted);margin-top:6px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 12px 10px;min-width:0}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums;color:var(--accent);line-height:1.2}
+.stat span{font-size:12px;color:var(--muted)}
+.logrow{display:grid;grid-template-columns:76px 1fr auto;gap:4px 12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;width:100%;text-align:left}
+@media (hover:hover){.logrow:hover{border-color:var(--accent)}}
+.logrow .d{font-weight:700;font-size:14px}
+.logrow .d small{display:block;font-weight:500;color:var(--faint);font-size:12px}
+.meter{height:8px;border-radius:99px;background:var(--accent-soft);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--graph);border-radius:99px}
+.logrow .n{font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.logrow .miss{grid-column:2/4;font-size:12px;color:var(--warn)}
+.petnote{margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.petnote h3{margin:0 0 4px;font-size:13px;color:var(--faint);font-weight:500}
+.petnote p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--card) 94%,transparent);border-top:1px solid var(--line);
+  padding:6px max(16px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tab{min-height:54px;border:0;background:transparent;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--faint);font-size:12px;font-weight:500}
+.tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-current="page"]{color:var(--accent);background:var(--accent-soft);font-weight:700}
+
+.sheet-wrap{position:fixed;inset:0;z-index:40;background:var(--overlay);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;max-height:92%;overflow:auto;background:var(--card);border-radius:22px 22px 0 0;
+  padding:8px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));box-shadow:0 -8px 30px rgba(0,0,0,.15)}
+@media (min-width:600px){.sheet-wrap{align-items:center}.sheet{border-radius:22px;max-height:88%}}
+.grab{width:40px;height:4px;border-radius:4px;background:var(--line);margin:4px auto 10px}
+.sheet h2{margin:0 0 14px;font-size:19px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-width:0}
+.field>label,.field>.lab{font-size:13px;font-weight:500;color:var(--muted)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inp{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;background:var(--bg);padding:10px 12px;font-size:16px}
+textarea.inp{min-height:76px;resize:vertical}
+.inp:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-height:40px;padding:0 13px;border-radius:99px;border:1px solid var(--line);background:var(--bg);font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
+.timechips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.timechips span{display:inline-flex;align-items:center;gap:2px;padding-left:12px;border-radius:99px;background:var(--accent-soft);color:var(--chip-fg);font-weight:700;font-variant-numeric:tabular-nums}
+.timechips button{width:36px;height:36px;border:0;background:transparent;color:var(--chip-fg);font-size:18px;border-radius:99px}
+.addtime{display:flex;gap:8px}
+.addtime .inp{flex:1}
+.swatches{display:flex;gap:10px}
+.swatches button{width:40px;height:40px;border-radius:50%;border:3px solid var(--card);background:var(--mc);box-shadow:0 0 0 1px var(--line)}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--fg)}
+.err{color:var(--warn);font-size:13px;min-height:20px;margin:-4px 0 8px}
+.sheet-foot{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap}
+.sheet-foot .right{display:flex;gap:8px;margin-left:auto}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;background:var(--fg);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:10px;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast button{min-height:40px;border:0;border-radius:10px;padding:0 12px;background:transparent;color:var(--accent-soft);font-weight:700}
+.toast.plain{padding:12px 16px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="5.2" cy="10.2" rx="2.2" ry="2.8"/><ellipse cx="9.3" cy="5.6" rx="2.2" ry="2.9"/><ellipse cx="14.7" cy="5.6" rx="2.2" ry="2.9"/><ellipse cx="18.8" cy="10.2" rx="2.2" ry="2.8"/><path d="M12 11.2c-3 0-6.3 4.4-6.3 6.9 0 1.7 1.3 2.6 2.9 2.6 1.4 0 2.2-.7 3.4-.7s2 .7 3.4.7c1.6 0 2.9-.9 2.9-2.6 0-2.5-3.3-6.9-6.3-6.9z"/></svg></div>
+    <div class="who"><h1 id="petName">나미</h1><p id="petSub">투약 수첩</p></div>
+    <button class="icon-btn" id="bellBtn" aria-label="알림 설정"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></button>
+    <button class="icon-btn" id="petBtn" aria-label="반려동물 정보 수정"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+  </header>
+  <p class="note" id="note">기록을 불러오는 중이에요…</p>
+  <main>
+    <section id="view-day"></section>
+    <section id="view-meds" hidden></section>
+    <section id="view-log" hidden></section>
+  </main>
+</div>
+
+<nav class="tabs" aria-label="화면 전환">
+  <div class="tabs-in">
+    <button class="tab" data-view="day" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="m9 15 2 2 4-4"/></svg>투약</button>
+    <button class="tab" data-view="meds"><svg viewBox="0 0 24 24"><rect x="2.5" y="8" width="19" height="8" rx="4" transform="rotate(-35 12 12)"/><path d="m9.2 7.9 5.6 8.2"/></svg>약 관리</button>
+    <button class="tab" data-view="log"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>기록</button>
+  </div>
+</nav>
+
+<div class="sheet-wrap" id="sheetWrap" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { initializeFirestore, persistentLocalCache, doc, collection, query, orderBy, limit, onSnapshot, setDoc, deleteDoc, getDocs }
+  from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const FIREBASE = {
+  apiKey: "AIzaSyAcLAP8_0P00SCDbdDB7He8m4pfxy4KamM",
+  authDomain: "nami-meds-app.firebaseapp.com",
+  projectId: "nami-meds-app",
+  storageBucket: "nami-meds-app.firebasestorage.app",
+  messagingSenderId: "32083632514",
+  appId: "1:32083632514:web:d65d17dda3bebc5cf86f9b",
+};
+const VAPID_PUBLIC = "BHTuTcksx0_8NA5F73sJvdZLjnzGj7ZmEBxoUxC_mRmguhgHA2O8y61wbHhzQmteZyRQw7DKqzQ02aP5Ne_ZxXg";
+const lsGet = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (_) {} };
+const FID_RE = /^[A-Za-z0-9_-]{20,64}$/;
+const qsF = new URLSearchParams(location.search).get("f");
+let FID = (qsF && FID_RE.test(qsF)) ? qsF : lsGet("nami-fid");
+if (FID && !FID_RE.test(FID)) FID = null;
+if (FID) lsSet("nami-fid", FID);
+
+const $ = s => document.querySelector(s);
+const FORMS = ["알약","가루약","물약","연고·크림","안약·귀약","주사","영양제"];
+const FOODS = {any:"밥 상관없음", with:"밥과 함께", after:"밥 먹고", empty:"공복"};
+const EVERY = [[1,"매일"],[2,"2일마다"],[3,"3일마다"],[7,"주 1회"],[30,"월 1회"]];
+const COLORS = ["mint","sky","peach","lilac","sun"];
+const SPECIES = {dog:"강아지", cat:"고양이", etc:"반려동물"};
+const WD = "일월화수목금토";
+const PILL = '<svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-35 12 12)"><path class="a" d="M7 7.5h5v9H7a4.5 4.5 0 0 1 0-9z"/><path class="b" d="M12 7.5h5a4.5 4.5 0 0 1 0 9h-5z"/></g></svg>';
+const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+
+const S = {
+  mode: "loading", fs: null, base: null, myName: lsGet("nami-me") || "", readonly: false, slow: false, pushOn: false,
+  meds: [], logs: {}, pet: {name:"나미", species:"dog", weight:"", note:""},
+  gotMeds: false, view: "day", day: null,
+};
+
+/* ---------- 날짜 ---------- */
+const pad = n => String(n).padStart(2, "0");
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseKey = k => { const [y,m,d] = k.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (k, n) => { const d = parseKey(k); d.setDate(d.getDate()+n); return keyOf(d); };
+const diffDays = (a, b) => Math.round((parseKey(b) - parseKey(a)) / 86400000);
+const todayKey = () => keyOf(new Date());
+const nowMin = () => { const d = new Date(); return d.getHours()*60 + d.getMinutes(); };
+const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+const md = k => { const d = parseKey(k); return `${d.getMonth()+1}/${d.getDate()}`; };
+const mdw = k => { const d = parseKey(k); return `${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`; };
+const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+S.day = todayKey();
+
+/* ---------- DOM 도우미 ---------- */
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "svg") el.innerHTML = v; // 정적 SVG만
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) {
+    if (c == null || c === false) continue;
+    el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+  return el;
+}
+
+/* ---------- 일정 계산 ---------- */
+function dueOn(m, k) {
+  if (!m.start || k < m.start) return false;
+  if (m.end && k > m.end) return false;
+  return diffDays(m.start, k) % (m.every || 1) === 0;
+}
+function dosesFor(k) {
+  const entries = S.logs[k]?.entries || {};
+  const out = [];
+  for (const m of S.meds) {
+    if (!dueOn(m, k)) continue;
+    for (const t of (m.times || [])) {
+      const key = m.id + "@" + t;
+      out.push({ m, t, key, e: entries[key] || null });
+    }
+  }
+  return out.sort((a, b) => a.t.localeCompare(b.t) || a.m.name.localeCompare(b.m.name));
+}
+function doseState(d, k, today, now) {
+  if (d.e?.s === "given") return "given";
+  if (d.e?.s === "skipped") return "skipped";
+  if (k < today) return "missed";
+  if (k > today) return "later";
+  const t = toMin(d.t);
+  if (now > t + 60) return "late";
+  if (now >= t - 30) return "now";
+  return "later";
+}
+function dayStatus(k, today) {
+  const ds = dosesFor(k);
+  if (!ds.length) return "none";
+  const done = ds.filter(d => d.e).length;
+  if (done === ds.length) return "done";
+  if (k < today) return "miss";
+  if (k === today) return done ? "part" : "plan";
+  return "plan";
+}
+const slotOf = t => { const m = toMin(t); return m < 660 ? "아침" : m < 900 ? "점심" : m < 1260 ? "저녁" : "밤"; };
+
+
+/* ---------- 렌더 ---------- */
+function render() {
+  renderHeader(); renderNote();
+  if (S.mode === "nofamily") { renderGate(); return; }
+  for (const v of ["day","meds","log"]) $("#view-" + v).hidden = S.view !== v;
+  document.querySelectorAll(".tab").forEach(b => b.toggleAttribute("aria-current", false));
+  document.querySelector(`.tab[data-view="${S.view}"]`).setAttribute("aria-current", "page");
+  if (S.view === "day") renderDay();
+  else if (S.view === "meds") renderMeds();
+  else renderLog();
+}
+function renderHeader() {
+  $("#petName").textContent = S.pet.name || "나미";
+  const bits = [SPECIES[S.pet.species] || "반려동물"];
+  if (S.pet.weight) bits.push(S.pet.weight + "kg");
+  bits.push("투약 수첩");
+  $("#petSub").textContent = bits.join(" · ");
+  $("#petBtn").hidden = S.readonly || S.mode === "nofamily";
+  $("#bellBtn").hidden = S.mode === "nofamily";
+  $("#bellBtn").classList.toggle("bell-on", S.pushOn);
+}
+function renderNote() {
+  const n = $("#note"); let msg = "", warn = false;
+  if (S.mode === "nofamily") msg = "";
+  else if (S.mode === "loading") msg = S.slow ? "기록 저장소에 아직 연결되지 않았어요. 인터넷 연결을 확인해 주세요." : "기록을 불러오는 중이에요…";
+  else if (S.slow) { msg = "인터넷이 연결되지 않았어요. 체크한 기록은 연결되면 자동으로 올라가요."; warn = true; }
+  n.textContent = msg; n.hidden = !msg; n.classList.toggle("warn", warn);
+}
+
+function renderDay() {
+  const root = $("#view-day"); root.replaceChildren();
+  const today = todayKey(), k = S.day, now = nowMin();
+  const d0 = parseKey(k), wStart = addDays(k, -d0.getDay());
+
+  root.append(h("div", {class:"week"},
+    h("button", {class:"icon-btn", "aria-label":"이전 주", onclick:() => { S.day = addDays(k, -7); render(); }}, "‹"),
+    h("div", {class:"days"}, Array.from({length:7}, (_, i) => {
+      const dk = addDays(wStart, i);
+      return h("button", {class:"day" + (dk === k ? " sel" : "") + (dk === today ? " today" : ""),
+        "aria-pressed": dk === k ? "true" : "false", "aria-label": mdw(dk),
+        onclick:() => { S.day = dk; render(); }},
+        h("span", {class:"wd"}, dk === today ? "오늘" : WD[i]),
+        h("span", {class:"dn"}, parseKey(dk).getDate()),
+        h("span", {class:"dot " + dayStatus(dk, today)}));
+    })),
+    h("button", {class:"icon-btn", "aria-label":"다음 주", onclick:() => { S.day = addDays(k, 7); render(); }}, "›")
+  ));
+
+  if (S.mode === "loading" && !S.gotMeds) { root.append(h("div", {class:"empty"}, h("p", null, "약 목록을 불러오는 중이에요."))); return; }
+  if (!S.meds.length) {
+    root.append(h("div", {class:"empty"},
+      h("h3", null, `${S.pet.name || "나미"}의 첫 약을 등록해 주세요`),
+      h("p", null, "약 이름, 먹일 시간, 기간을 넣으면 날마다 먹일 약이 여기에 시간순으로 나타나요. 가족 누구든 ‘먹였어요’를 누르면 모두에게 바로 보여요."),
+      !S.readonly && h("button", {class:"btn primary", onclick:() => openMedSheet(null)}, "약 등록하기")));
+    return;
+  }
+
+  const ds = dosesFor(k);
+  const done = ds.filter(d => d.e).length;
+  const states = ds.map(d => doseState(d, k, today, now));
+  const late = states.filter(s => s === "late" || s === "missed").length;
+  const title = k === today ? "오늘" : mdw(k);
+  let sub = "", subWarn = false;
+  if (!ds.length) sub = "이날은 먹일 약이 없어요.";
+  else if (done === ds.length) sub = `${k === today ? "오늘" : "이날"} 약을 모두 챙겼어요.`;
+  else if (late) { sub = k < today ? `기록 없는 투약 ${late}건` : `늦은 투약 ${late}건이 있어요`; subWarn = true; }
+  else if (k === today) { const nx = ds.find((d, i) => states[i] === "now" || states[i] === "later"); if (nx) sub = `다음 투약 ${nx.t} · ${nx.m.name} ${nx.m.dose || ""}`.trim(); }
+  else sub = "예정된 투약이에요.";
+
+  const C = 2 * Math.PI * 30, pct = ds.length ? done / ds.length : 0;
+  const ring = h("div", {class:"ring", "aria-hidden":"true", svg:
+    `<svg viewBox="0 0 72 72"><circle class="track" cx="36" cy="36" r="30" stroke-width="8"/><circle class="bar" cx="36" cy="36" r="30" stroke-width="8" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${(C*(1-pct)).toFixed(2)}" ${pct === 0 ? 'stroke-opacity="0"' : ""}/></svg>`});
+  ring.append(h("b", null, done, h("small", null, "/" + ds.length)));
+  root.append(h("div", {class:"summary"}, ring,
+    h("div", {style:"min-width:0"},
+      h("h2", null, ds.length ? `${title} 먹일 약 ${ds.length}번 중 ${done}번 챙김` : title),
+      sub && h("p", {class: subWarn ? "warn" : null}, sub))));
+
+  const groups = {};
+  ds.forEach((d, i) => { (groups[slotOf(d.t)] ||= []).push([d, states[i]]); });
+  for (const name of ["아침","점심","저녁","밤"]) {
+    if (!groups[name]) continue;
+    root.append(h("div", {class:"slot"}, h("h3", null, name),
+      h("div", {class:"stack"}, groups[name].map(([d, st]) => doseCard(d, st, k)))));
+  }
+}
+
+const STLABEL = {now:"지금 먹일 시간", late:"늦었어요", missed:"기록 없음", skipped:"건너뜀"};
+function doseCard(d, st, k) {
+  const m = d.m;
+  const canAct = !S.readonly && S.mode !== "loading" && k <= todayKey();
+  let acts = null;
+  if (canAct) {
+    if (d.e) acts = h("div", {class:"acts"}, h("button", {class:"btn text", onclick:() => mark(k, d, null)}, "기록 취소"));
+    else acts = h("div", {class:"acts"},
+      h("button", {class:"btn primary", onclick:() => mark(k, d, "given")}, "먹였어요"),
+      h("button", {class:"btn text", onclick:() => mark(k, d, "skipped")}, "건너뛰기"));
+  }
+  let by = null;
+  if (d.e) {
+    const sameDay = keyOf(new Date(d.e.at)) === k;
+    const who = d.e.by ? (d.e.by === S.myName ? `${d.e.by}(나)` : d.e.by) : "";
+    by = h("div", {class:"by"}, h("span", {svg: d.e.s === "given" ? CHECK : ""}),
+      `${who ? who + " · " : ""}${sameDay ? "" : md(keyOf(new Date(d.e.at))) + " "}${hhmm(d.e.at)}에 ${d.e.s === "given" ? "먹였어요" : "건너뛰었어요"}`);
+  }
+  return h("article", {class:`dose st-${st} c-${m.color || "mint"}`},
+    h("div", {class:"pill", svg: PILL}),
+    h("div", {class:"dose-main"},
+      h("div", {class:"dose-top"}, h("span", {class:"dose-time num"}, d.t), STLABEL[st] && h("span", {class:"tag " + st}, STLABEL[st])),
+      h("div", {class:"dose-name"}, m.name, m.dose && h("span", {class:"dose-amt"}, m.dose)),
+      h("div", {class:"meta"},
+        h("span", {class:"chip"}, m.form || "알약"),
+        m.food && m.food !== "any" && h("span", {class:"chip"}, FOODS[m.food])),
+      m.note && h("div", {class:"memo"}, m.note),
+      by),
+    acts);
+}
+
+function renderGate() {
+  for (const v of ["day","meds","log"]) $("#view-" + v).hidden = v !== "day";
+  const root = $("#view-day"); root.replaceChildren();
+  const inp = h("input", {class:"inp", id:"f-invite", placeholder:"초대 링크를 붙여넣어 주세요", autocomplete:"off"});
+  const err = h("p", {class:"err", role:"alert"});
+  root.append(h("div", {class:"empty", style:"text-align:left"},
+    h("h3", null, "가족 초대 링크로 열어 주세요"),
+    h("p", null, "나미의 투약 기록은 가족 초대 링크를 가진 사람만 볼 수 있어요. 받은 링크를 눌러 열거나, 아래에 붙여넣어 주세요."),
+    h("form", {onsubmit: e => {
+      e.preventDefault();
+      const v = inp.value.trim();
+      let f = null;
+      try { f = new URL(v).searchParams.get("f"); } catch (_) { f = v; }
+      if (!f || !FID_RE.test(f)) { err.textContent = "링크가 올바르지 않아요. 받은 링크 전체를 붙여넣어 주세요."; return; }
+      location.href = location.pathname + "?f=" + encodeURIComponent(f);
+    }}, h("div", {class:"field"}, inp), err, h("button", {class:"btn primary", type:"submit"}, "열기"))));
+  document.querySelector(".tabs").hidden = true;
+}
+
+function schedText(m, today) {
+  const ev = (EVERY.find(e => e[0] === (m.every || 1)) || [0, `${m.every}일마다`])[1];
+  let per;
+  if (m.end) {
+    const left = diffDays(today, m.end);
+    per = `${md(m.start)} – ${md(m.end)}` + (left >= 0 ? (m.start > today ? ` · ${diffDays(today, m.start)}일 뒤 시작` : left === 0 ? " · 오늘까지" : ` · ${left}일 남음`) : " · 끝남");
+  } else per = `${md(m.start)}부터 계속`;
+  return `${ev} · ${per}`;
+}
+function medCard(m, today, ended) {
+  return h("button", {class:`med c-${m.color || "mint"}${ended ? " ended" : ""}`, onclick:() => !S.readonly && openMedSheet(m), "aria-label": `${m.name} 수정`, disabled: S.readonly ? true : null},
+    h("div", {class:"pill", svg: PILL}),
+    h("div", {class:"dose-main"},
+      h("div", {class:"dose-name"}, m.name, m.dose && h("span", {class:"dose-amt"}, m.dose)),
+      h("div", {class:"times"}, (m.times || []).map(t => h("span", null, t))),
+      h("div", {class:"sched"}, schedText(m, today)),
+      h("div", {class:"meta"}, h("span", {class:"chip"}, m.form || "알약"), m.food && m.food !== "any" && h("span", {class:"chip"}, FOODS[m.food])),
+      m.note && h("div", {class:"memo"}, m.note)));
+}
+function renderMeds() {
+  const root = $("#view-meds"); root.replaceChildren();
+  const today = todayKey();
+  root.append(h("div", {class:"sec-head"}, h("h2", null, "약 관리"),
+    !S.readonly && S.mode !== "loading" && h("button", {class:"btn primary", onclick:() => openMedSheet(null)}, "+ 약 추가")));
+  if (!S.meds.length) {
+    root.append(h("div", {class:"empty"}, h("h3", null, "등록된 약이 없어요"),
+      h("p", null, "처방받은 약, 심장사상충 예방약, 영양제처럼 꾸준히 챙길 것을 넣어 두세요.")));
+    return;
+  }
+  const active = S.meds.filter(m => !m.end || m.end >= today), ended = S.meds.filter(m => m.end && m.end < today);
+  if (active.length) root.append(h("p", {class:"sec-label"}, `먹는 중 ${active.length}`), h("div", {class:"stack"}, active.map(m => medCard(m, today, false))));
+  if (ended.length) root.append(h("p", {class:"sec-label"}, `끝난 약 ${ended.length}`), h("div", {class:"stack"}, ended.map(m => medCard(m, today, true))));
+}
+
+function renderLog() {
+  const root = $("#view-log"); root.replaceChildren();
+  const today = todayKey();
+  root.append(h("div", {class:"sec-head"}, h("h2", null, "기록")));
+  let g7 = 0, t7 = 0, skips = 0;
+  for (let i = 1; i <= 7; i++) { const ds = dosesFor(addDays(today, -i)); t7 += ds.length; g7 += ds.filter(d => d.e?.s === "given").length; }
+  for (let i = 0; i < 30; i++) skips += dosesFor(addDays(today, -i)).filter(d => d.e?.s === "skipped").length;
+  let streak = 0;
+  const td = dosesFor(today);
+  const earliest = S.meds.reduce((a, m) => m.start && m.start < a ? m.start : a, today);
+  for (let i = (td.length && td.every(d => d.e) ? 0 : 1); i < 400 && addDays(today, -i) >= earliest; i++) {
+    const ds = dosesFor(addDays(today, -i));
+    if (!ds.length) continue;
+    if (ds.every(d => d.e?.s === "given")) streak++; else break;
+  }
+  root.append(h("div", {class:"stats"},
+    h("div", {class:"stat"}, h("b", null, t7 ? Math.round(g7 / t7 * 100) + "%" : "–"), h("span", null, "지난 7일 투약률")),
+    h("div", {class:"stat"}, h("b", null, streak + "일"), h("span", null, "빠짐없이 연속")),
+    h("div", {class:"stat"}, h("b", null, skips + "번"), h("span", null, "30일간 건너뜀"))));
+
+  const rows = [];
+  for (let i = 0; i < 30; i++) {
+    const dk = addDays(today, -i), ds = dosesFor(dk);
+    if (!ds.length) continue;
+    const done = ds.filter(d => d.e).length, given = ds.filter(d => d.e?.s === "given").length;
+    const missing = ds.filter(d => !d.e && (dk < today || toMin(d.t) + 60 < nowMin()));
+    const pd = parseKey(dk);
+    rows.push(h("button", {class:"logrow", onclick:() => { S.day = dk; go("day"); }, "aria-label": `${mdw(dk)} 기록 보기`},
+      h("span", {class:"d num"}, `${pd.getMonth()+1}/${pd.getDate()}`, h("small", null, i === 0 ? "오늘" : i === 1 ? "어제" : WD[pd.getDay()] + "요일")),
+      h("span", {class:"meter"}, h("i", {style:`width:${Math.round(done / ds.length * 100)}%`})),
+      h("span", {class:"n"}, `${given}/${ds.length}`),
+      missing.length ? h("span", {class:"miss"}, "빠짐: " + missing.map(d => `${d.t} ${d.m.name}`).join(", ")) : null));
+  }
+  if (rows.length) root.append(h("div", {class:"stack"}, rows));
+  else root.append(h("div", {class:"empty"}, h("p", null, "최근 30일 동안 기록할 투약이 없었어요.")));
+  if (S.pet.note) root.append(h("div", {class:"petnote"}, h("h3", null, `${S.pet.name || "나미"} 메모`), h("p", null, S.pet.note)));
+}
+
+/* ---------- 쓰기 ---------- */
+const chains = {};
+function serial(key, fn) { const p = (chains[key] || Promise.resolve()).catch(() => {}).then(fn); chains[key] = p; return p; }
+function writeFail(e) {
+  console.error(e);
+  if (e && e.code === "permission-denied") toast("저장할 수 없는 링크예요. 가족 초대 링크를 다시 확인해 주세요.");
+  else toast("저장하지 못했어요. 잠시 후 다시 눌러 주세요.");
+}
+/* 오프라인이면 서버 확인을 기다리지 않는다: 화면은 로컬 캐시로 바로 바뀌고, 연결되면 올라간다 */
+const fsWrite = p => { p.catch(writeFail); return Promise.resolve(); };
+const ref = (...segs) => doc(S.fs, S.base, ...segs);
+function setEntry(k, key, entry) {
+  return fsWrite(setDoc(ref("logs", k), {date: k, entries: {[key]: entry}}, {merge: true}));
+}
+async function mark(k, d, status) {
+  if (status && !S.myName) { askName(() => mark(k, d, status)); return; }
+  const prev = d.e;
+  const entry = status ? {s: status, by: S.myName || null, at: new Date().toISOString()} : null;
+  await setEntry(k, d.key, entry);
+  const name = S.pet.name || "나미";
+  const msg = status === "given" ? `${name}에게 ${d.m.name}을(를) 먹였어요` : status === "skipped" ? `${d.t} ${d.m.name} 건너뜀` : "기록을 취소했어요";
+  toast(msg, () => setEntry(k, d.key, prev));
+}
+function saveMed(id, data) {
+  const r = id ? ref("meds", id) : doc(collection(S.fs, S.base, "meds"));
+  return fsWrite(setDoc(r, data));
+}
+function deleteMed(id) { return fsWrite(deleteDoc(ref("meds", id))); }
+function savePet(data) { return fsWrite(setDoc(ref("meta", "pet"), data)); }
+
+/* ---------- 이 휴대폰을 쓰는 사람 ---------- */
+function askName(after) {
+  const fName = h("input", {class:"inp", id:"f-me", value: S.myName, maxlength:"10", placeholder:"예: 엄마", autocomplete:"off"});
+  const err = h("p", {class:"err", role:"alert"});
+  openSheet("이 휴대폰은 누가 쓰나요?", h("form", {onsubmit: e => {
+    e.preventDefault();
+    const v = fName.value.trim();
+    if (!v) { err.textContent = "이름이나 호칭을 넣어 주세요."; return; }
+    S.myName = v; lsSet("nami-me", v); closeSheet(); render();
+    if (after) after();
+  }},
+    h("p", {class:"info"}, "‘먹였어요’를 누르면 누가 먹였는지 가족에게 함께 보여요."),
+    h("div", {class:"seg", style:"margin-bottom:12px"}, ["엄마","아빠","언니","누나","오빠","형","동생"].map(n => h("button", {type:"button", onclick:() => { fName.value = n; }}, n))),
+    h("div", {class:"field"}, h("label", {for:"f-me"}, "이름 또는 호칭"), fName),
+    err,
+    h("div", {class:"sheet-foot"}, h("span"), h("div", {class:"right"}, h("button", {class:"btn primary", type:"submit"}, "저장")))));
+}
+
+/* ---------- 알림 ---------- */
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const b64ToBytes = s => { const p = "=".repeat((4 - s.length % 4) % 4); const b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+async function subId(endpoint) {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint));
+  return btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").slice(0, 32);
+}
+async function currentSub() {
+  if (!pushSupported()) return null;
+  const reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+async function refreshPushState() {
+  try { const s = await currentSub(); S.pushOn = !!s && Notification.permission === "granted"; } catch (_) { S.pushOn = false; }
+  renderHeader();
+  if (S.pushOn && S.base) { // 기기 정보가 지워졌을 때를 대비해 다시 적어 둔다
+    const s = await currentSub(); const j = s.toJSON();
+    setDoc(ref("subs", await subId(j.endpoint)), {endpoint: j.endpoint, keys: j.keys, who: S.myName || "", seen: new Date().toISOString()}, {merge: true}).catch(() => {});
+  }
+}
+async function enablePush(btn) {
+  btn.disabled = true;
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") { toast("알림이 허용되지 않았어요."); openBellSheet(); return; }
+    const reg = await navigator.serviceWorker.ready;
+    let s = await reg.pushManager.getSubscription();
+    if (!s) s = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC)});
+    const j = s.toJSON();
+    await setDoc(ref("subs", await subId(j.endpoint)), {endpoint: j.endpoint, keys: j.keys, who: S.myName || "", ua: navigator.userAgent.slice(0, 120), createdAt: new Date().toISOString()});
+    S.pushOn = true; renderHeader(); toast("이 휴대폰에 알림을 켰어요"); openBellSheet();
+  } catch (e) { console.error(e); btn.disabled = false; toast("알림을 켜지 못했어요. 잠시 후 다시 해 주세요."); }
+}
+async function disablePush(btn) {
+  btn.disabled = true;
+  try {
+    const s = await currentSub();
+    if (s) { const id = await subId(s.endpoint); await s.unsubscribe(); deleteDoc(ref("subs", id)).catch(() => {}); }
+    S.pushOn = false; renderHeader(); toast("이 휴대폰의 알림을 껐어요"); openBellSheet();
+  } catch (e) { btn.disabled = false; toast("알림을 끄지 못했어요."); }
+}
+async function previewPush() {
+  const reg = await navigator.serviceWorker.ready;
+  reg.showNotification(`${S.pet.name || "나미"} 약 먹일 시간이에요`, {body: "08:00 · 예시 약 1알 (미리보기)", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: "preview"});
+}
+async function openBellSheet() {
+  const body = h("div");
+  const close = h("div", {class:"sheet-foot"}, h("span"), h("div", {class:"right"}, h("button", {class:"btn ghost", type:"button", onclick: closeSheet}, "닫기")));
+  const how = h("p", {class:"info"}, "약 먹일 시간이 되면 알림이 와요. 30분이 지나도 아무도 체크하지 않으면 한 번 더 알려요. 누군가 ‘먹였어요’를 누르면 그 약 알림은 더 오지 않아요. 알림은 5~15분 늦게 올 수 있어요.");
+  if (!pushSupported()) {
+    if (isIOS && !isStandalone()) {
+      body.append(how, h("p", {class:"info", style:"color:var(--fg);font-weight:700"}, "아이폰은 홈 화면에 추가한 뒤에 알림을 켤 수 있어요."),
+        h("ol", {class:"steps"},
+          h("li", null, "사파리 아래쪽의 공유 버튼(네모에 위쪽 화살표)을 누르세요."),
+          h("li", null, "‘홈 화면에 추가’를 누르고 ‘추가’를 누르세요."),
+          h("li", null, "홈 화면에 생긴 ‘나미 투약’ 아이콘으로 앱을 연 뒤, 여기 종 버튼에서 알림을 켜세요.")),
+        h("p", {class:"info"}, "iOS 16.4 이상에서 쓸 수 있어요. 꼭 이 페이지 주소 그대로 추가해야 가족 기록이 이어져요."));
+    } else body.append(h("p", {class:"info"}, "이 브라우저에서는 알림을 받을 수 없어요. 아이폰은 사파리, 안드로이드는 크롬에서 열어 주세요."));
+    openSheet("알림", h("div", null, body, close)); return;
+  }
+  const perm = Notification.permission;
+  const sub = await currentSub().catch(() => null);
+  if (perm === "denied") {
+    body.append(how, h("p", {class:"note warn"}, "이 휴대폰에서 알림이 꺼져 있어요."),
+      h("p", {class:"info"}, isIOS ? "아이폰 ‘설정 → 알림 → 나미 투약’에서 알림 허용을 켜 주세요." : "브라우저의 사이트 설정에서 알림을 허용해 주세요."));
+  } else if (sub && perm === "granted") {
+    body.append(h("div", {class:"okline"}, h("span", {svg: CHECK.replace("<svg", '<svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.6"')}), "이 휴대폰은 알림을 받고 있어요"), how,
+      h("div", {class:"btnrow"},
+        h("button", {class:"btn ghost", type:"button", onclick: previewPush}, "알림 미리보기"),
+        h("button", {class:"btn text", type:"button", onclick: e => disablePush(e.currentTarget)}, "이 휴대폰 알림 끄기")));
+  } else {
+    body.append(how, h("div", {class:"btnrow"}, h("button", {class:"btn primary", type:"button", onclick: e => enablePush(e.currentTarget)}, "이 휴대폰에 알림 켜기")));
+  }
+  const list = h("p", {class:"info"}, "알림 받는 휴대폰을 확인하는 중…");
+  body.append(list);
+  getDocs(collection(S.fs, S.base, "subs")).then(snap => {
+    const names = snap.docs.map(d => d.data().who || "이름 없는 휴대폰");
+    list.textContent = names.length ? `알림 받는 휴대폰 ${names.length}대: ${names.join(", ")}` : "아직 알림을 켠 휴대폰이 없어요.";
+  }).catch(() => { list.textContent = ""; });
+  body.append(h("p", {class:"info"}, "가족 초대 링크: 이 주소를 가족에게 보내면 같은 기록을 함께 써요."),
+    h("div", {class:"btnrow"}, h("button", {class:"btn ghost", type:"button", onclick: async () => {
+      const link = `${location.origin}/?f=${FID}`;
+      try { await navigator.clipboard.writeText(link); toast("초대 링크를 복사했어요"); }
+      catch (_) { toast(link); }
+    }}, "초대 링크 복사"),
+    h("button", {class:"btn text", type:"button", onclick: () => askName(null)}, `내 이름: ${S.myName || "정하기"}`)));
+  openSheet("알림", h("div", null, body, close));
+}
+$("#bellBtn").addEventListener("click", openBellSheet);
+const sortMeds = () => S.meds.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || "") || a.name.localeCompare(b.name));
+
+/* ---------- 시트 ---------- */
+let lastFocus = null;
+function openSheet(title, body) {
+  lastFocus = document.activeElement;
+  const sh = $("#sheet"); sh.replaceChildren(h("div", {class:"grab"}), h("h2", {id:"sheetTitle"}, title), body);
+  $("#sheetWrap").hidden = false;
+  setTimeout(() => sh.querySelector("input,select,textarea,button:not(.grab)")?.focus(), 30);
+}
+function closeSheet() { $("#sheetWrap").hidden = true; $("#sheet").replaceChildren(); lastFocus?.focus?.(); }
+$("#sheetWrap").addEventListener("click", e => { if (e.target.id === "sheetWrap") closeSheet(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#sheetWrap").hidden) closeSheet(); });
+
+function seg(options, value, onPick) {
+  const wrap = h("div", {class:"seg", role:"group"});
+  const draw = v => wrap.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === String(v) ? "true" : "false"));
+  for (const [v, label] of options) wrap.append(h("button", {type:"button", "data-v": v, onclick:() => { onPick(v); draw(v); }}, label));
+  draw(value); return wrap;
+}
+
+function openMedSheet(m) {
+  const today = todayKey();
+  const st = m ? {...m, times:[...(m.times || [])]} :
+    {name:"", form:"알약", dose:"", times:["08:00"], every:1, start:today, end:null, food:"any", note:"", color: COLORS[S.meds.length % COLORS.length]};
+  const err = h("p", {class:"err", role:"alert"});
+  const fName = h("input", {class:"inp", id:"f-name", value: st.name, placeholder:"예: 심장약, 항생제, 피부약", maxlength:"40", autocomplete:"off"});
+  const fDose = h("input", {class:"inp", id:"f-dose", value: st.dose, placeholder:"예: 1/2알, 0.5ml", maxlength:"20", autocomplete:"off"});
+  const fForm = h("select", {class:"inp", id:"f-form"}, FORMS.map(f => h("option", {value:f, selected: f === st.form ? true : null}, f)));
+  const chips = h("div", {class:"timechips"});
+  const drawTimes = () => { st.times = [...new Set(st.times)].sort(); chips.replaceChildren(...st.times.map(t => h("span", null, t, h("button", {type:"button", "aria-label": t + " 빼기", onclick:() => { st.times = st.times.filter(x => x !== t); drawTimes(); }}, "×")))); if (!st.times.length) chips.append(h("span", {style:"background:transparent;color:var(--faint);padding:6px 0;font-weight:500"}, "먹일 시간을 하나 이상 넣어 주세요")); };
+  drawTimes();
+  const fTime = h("input", {class:"inp", type:"time", id:"f-time", value:"20:00"});
+  const fStart = h("input", {class:"inp", type:"date", id:"f-start", value: st.start});
+  const fEnd = h("input", {class:"inp", type:"date", id:"f-end", value: st.end || ""});
+  const quick = h("div", {class:"seg", style:"margin-top:8px"},
+    [5, 7, 14, 30].map(n => h("button", {type:"button", onclick:() => { fEnd.value = addDays(fStart.value || today, n - 1); }}, `${n}일`)),
+    h("button", {type:"button", onclick:() => { fEnd.value = ""; }}, "계속"));
+  const fNote = h("textarea", {class:"inp", id:"f-note", placeholder:"예: 간식에 싸서 주기, 먹이고 30분 지켜보기", maxlength:"200"}, st.note || "");
+  const sw = h("div", {class:"swatches", role:"group", "aria-label":"표시 색"});
+  const drawSw = () => sw.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === st.color ? "true" : "false"));
+  COLORS.forEach(c => sw.append(h("button", {type:"button", class:"c-" + c, "data-c": c, "aria-label": c, onclick:() => { st.color = c; drawSw(); }})));
+  drawSw();
+
+  const saveBtn = h("button", {class:"btn primary", type:"submit"}, m ? "저장" : "등록");
+  let armed = false;
+  const delBtn = m && h("button", {class:"btn danger", type:"button", onclick: async () => {
+    if (!armed) { armed = true; delBtn.classList.add("armed"); delBtn.textContent = "한 번 더 누르면 삭제"; return; }
+    delBtn.disabled = true;
+    try { await deleteMed(m.id); closeSheet(); toast(`${m.name}을(를) 삭제했어요`); } catch (e) { delBtn.disabled = false; writeFail(e); }
+  }}, "삭제");
+
+  const form = h("form", {onsubmit: async e => {
+    e.preventDefault();
+    const name = fName.value.trim();
+    if (!name) { err.textContent = "약 이름을 넣어 주세요."; fName.focus(); return; }
+    if (!st.times.length) { err.textContent = "먹일 시간을 하나 이상 넣어 주세요."; fTime.focus(); return; }
+    const start = fStart.value || today, end = fEnd.value || null;
+    if (end && end < start) { err.textContent = "끝나는 날이 시작일보다 빨라요."; fEnd.focus(); return; }
+    const data = {name, form: fForm.value, dose: fDose.value.trim(), times: st.times, every: Number(st.every) || 1,
+      start, end, food: st.food, note: fNote.value.trim(), color: st.color, createdAt: m?.createdAt || new Date().toISOString()};
+    saveBtn.disabled = true;
+    try { await saveMed(m?.id || null, data); closeSheet(); toast(m ? "저장했어요" : `${name}을(를) 등록했어요`); }
+    catch (er) { saveBtn.disabled = false; writeFail(er); }
+  }},
+    h("div", {class:"field"}, h("label", {for:"f-name"}, "약 이름"), fName),
+    h("div", {class:"row2"},
+      h("div", {class:"field"}, h("label", {for:"f-form"}, "종류"), fForm),
+      h("div", {class:"field"}, h("label", {for:"f-dose"}, "한 번에 먹일 양"), fDose)),
+    h("div", {class:"field"}, h("label", {for:"f-time"}, "먹일 시간"), chips,
+      h("div", {class:"addtime"}, fTime, h("button", {type:"button", class:"btn ghost", onclick:() => { if (fTime.value) { st.times.push(fTime.value); drawTimes(); err.textContent = ""; } }}, "시간 추가"))),
+    h("div", {class:"field"}, h("span", {class:"lab"}, "얼마나 자주"), seg(EVERY, st.every || 1, v => st.every = Number(v))),
+    h("div", {class:"row2"},
+      h("div", {class:"field"}, h("label", {for:"f-start"}, "시작일"), fStart),
+      h("div", {class:"field"}, h("label", {for:"f-end"}, "끝나는 날"), fEnd)),
+    h("div", {class:"field", style:"margin-top:-8px"}, h("span", {class:"lab"}, "기간 빠르게 정하기 (시작일부터)"), quick),
+    h("div", {class:"field"}, h("span", {class:"lab"}, "밥과의 관계"), seg(Object.entries(FOODS), st.food || "any", v => st.food = v)),
+    h("div", {class:"field"}, h("label", {for:"f-note"}, "메모"), fNote),
+    h("div", {class:"field"}, h("span", {class:"lab"}, "표시 색"), sw),
+    err,
+    h("div", {class:"sheet-foot"}, delBtn || h("span"),
+      h("div", {class:"right"}, h("button", {class:"btn ghost", type:"button", onclick: closeSheet}, "닫기"), saveBtn)));
+  openSheet(m ? "약 수정" : "약 등록", form);
+}
+
+function openPetSheet() {
+  const st = {...S.pet};
+  const fName = h("input", {class:"inp", id:"f-pet-name", value: st.name || "", maxlength:"20", autocomplete:"off"});
+  const fW = h("input", {class:"inp", id:"f-pet-weight", value: st.weight || "", inputmode:"decimal", placeholder:"예: 4.2", maxlength:"6"});
+  const fNote = h("textarea", {class:"inp", id:"f-pet-note", placeholder:"알레르기, 다니는 동물병원, 주의할 점", maxlength:"300"}, st.note || "");
+  const err = h("p", {class:"err", role:"alert"});
+  const saveBtn = h("button", {class:"btn primary", type:"submit"}, "저장");
+  openSheet("반려동물 정보", h("form", {onsubmit: async e => {
+    e.preventDefault();
+    const name = fName.value.trim(); if (!name) { err.textContent = "이름을 넣어 주세요."; return; }
+    const w = fW.value.trim().replace(/kg$/i, "");
+    if (w && !/^\d{1,3}(\.\d{1,2})?$/.test(w)) { err.textContent = "몸무게는 숫자로 넣어 주세요. 예: 4.2"; return; }
+    saveBtn.disabled = true;
+    try { await savePet({name, species: st.species || "dog", weight: w, note: fNote.value.trim()}); closeSheet(); toast("저장했어요"); }
+    catch (er) { saveBtn.disabled = false; writeFail(er); }
+  }},
+    h("div", {class:"field"}, h("label", {for:"f-pet-name"}, "이름"), fName),
+    h("div", {class:"field"}, h("span", {class:"lab"}, "종류"), seg(Object.entries(SPECIES), st.species || "dog", v => st.species = v)),
+    h("div", {class:"field"}, h("label", {for:"f-pet-weight"}, "몸무게 (kg)"), fW),
+    h("div", {class:"field"}, h("label", {for:"f-pet-note"}, "메모"), fNote),
+    err,
+    h("div", {class:"sheet-foot"}, h("span"), h("div", {class:"right"}, h("button", {class:"btn ghost", type:"button", onclick: closeSheet}, "닫기"), saveBtn))));
+}
+$("#petBtn").addEventListener("click", openPetSheet);
+
+/* ---------- 토스트 ---------- */
+let toastTimer = 0;
+function toast(msg, undo) {
+  const t = $("#toast"); clearTimeout(toastTimer);
+  t.replaceChildren(h("span", null, msg));
+  t.classList.toggle("plain", !undo);
+  if (undo) t.append(h("button", {onclick:() => { t.hidden = true; undo(); }}, "되돌리기"));
+  t.hidden = false;
+  toastTimer = setTimeout(() => { t.hidden = true; }, undo ? 5000 : 2600);
+}
+
+/* ---------- 화면 전환 ---------- */
+const HASH = {day:"today", meds:"meds", log:"log"};
+function go(v) { S.view = v; if (location.hash !== "#" + HASH[v]) history.replaceState(null, "", "#" + HASH[v]); render(); window.scrollTo(0, 0); }
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { if (b.dataset.view === "day" && S.view === "day") S.day = todayKey(); go(b.dataset.view); }));
+function fromHash() { const v = Object.keys(HASH).find(k => "#" + HASH[k] === location.hash); if (v) S.view = v; }
+window.addEventListener("hashchange", () => { fromHash(); render(); });
+
+/* ---------- 저장소 (Firestore: families/<가족 ID>/...) ---------- */
+function subscribe() {
+  let firstReal = false;
+  const slowTimer = setTimeout(() => { if (!firstReal) { S.slow = true; render(); } }, 10000);
+  const settle = meta => {
+    if (!meta.fromCache) { if (!firstReal) clearTimeout(slowTimer); firstReal = true; if (S.slow) { S.slow = false; renderNote(); } }
+  };
+  const onErr = e => { console.error(e); clearTimeout(slowTimer); S.slow = true; if (S.mode === "loading") { S.mode = "shared"; S.gotMeds = true; } render(); };
+  const opts = {includeMetadataChanges: true};
+  onSnapshot(collection(S.fs, S.base, "meds"), opts, snap => {
+    S.meds = snap.docs.map(d => ({...d.data(), id: d.id})).filter(m => m.name); sortMeds();
+    S.gotMeds = true; S.mode = "shared"; settle(snap.metadata); render();
+  }, onErr);
+  onSnapshot(query(collection(S.fs, S.base, "logs"), orderBy("date", "desc"), limit(150)), snap => {
+    const L = {}; snap.docs.forEach(d => { const v = d.data(); L[v.date || d.id] = v; });
+    S.logs = L; render();
+  }, onErr);
+  onSnapshot(ref("meta", "pet"), snap => {
+    if (snap.exists()) S.pet = {...{name:"나미", species:"dog", weight:"", note:""}, ...snap.data()};
+    renderHeader(); if (S.view === "log") renderLog();
+  }, onErr);
+}
+window.addEventListener("offline", () => { S.slow = true; renderNote(); });
+window.addEventListener("online", () => { S.slow = false; renderNote(); });
+
+async function boot() {
+  fromHash();
+  if (!FID) { S.mode = "nofamily"; render(); return; }
+  if (!new URLSearchParams(location.search).get("f")) history.replaceState(null, "", `/?f=${FID}${location.hash}`);
+  render();
+  const app = initializeApp(FIREBASE);
+  try { S.fs = initializeFirestore(app, {localCache: persistentLocalCache()}); }
+  catch (_) { S.fs = initializeFirestore(app, {}); }
+  S.base = `families/${FID}`;
+  subscribe();
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").then(refreshPushState).catch(e => console.error(e));
+  }
+  if (!S.myName) setTimeout(() => { if ($("#sheetWrap").hidden) askName(null); }, 800);
+}
+setInterval(() => { if (S.mode !== "nofamily" && S.view === "day" && S.day === todayKey() && $("#sheetWrap").hidden) renderDay(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.mode !== "nofamily") { render(); refreshPushState(); } });
+boot();
+</script>
+</body>
+</html>
