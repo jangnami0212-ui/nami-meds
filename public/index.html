@@ -94,7 +94,8 @@ button{cursor:pointer}
 .day .dot.done{background:var(--graph)} .day .dot.part{background:var(--line);box-shadow:inset 0 0 0 1.5px var(--graph)}
 .day .dot.miss{background:var(--warn)} .day .dot.plan{background:var(--line)}
 .day.today .dn{color:var(--accent)}
-.day.sel{background:var(--card);border-color:var(--line);box-shadow:var(--shadow)}
+.day.sel{background:var(--accent-soft);border-color:color-mix(in srgb, var(--accent) 22%, transparent)}
+.day.sel .dn{color:var(--chip-fg)} .day.sel .wd{color:var(--chip-fg);opacity:.8}
 @media (hover:hover){.day:hover{border-color:var(--line)}}
 
 .summary{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:18px}
@@ -293,7 +294,7 @@ const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
 const md = k => { const d = parseKey(k); return `${d.getMonth()+1}/${d.getDate()}`; };
 const mdw = k => { const d = parseKey(k); return `${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`; };
 const hhmm = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-S.day = todayKey();
+S.day = todayKey(); S.wStart = null; S.openedOn = S.day;
 
 /* ---------- DOM 도우미 ---------- */
 function h(tag, props, ...kids) {
@@ -384,20 +385,22 @@ function renderNote() {
 function renderDay() {
   const root = $("#view-day"); root.replaceChildren();
   const today = todayKey(), k = S.day, now = nowMin();
-  const d0 = parseKey(k), wStart = addDays(k, -d0.getDay());
+  // 날짜 띠: 처음엔 오늘이 가운데. 고른 날이 띠 밖이면 그 날을 가운데로.
+  if (!S.wStart || k < S.wStart || k > addDays(S.wStart, 6)) S.wStart = addDays(k === today ? today : k, -3);
+  const wStart = S.wStart;
 
   root.append(h("div", {class:"week"},
-    h("button", {class:"icon-btn", "aria-label":"이전 주", onclick:() => { S.day = addDays(k, -7); render(); }}, "‹"),
+    h("button", {class:"icon-btn", "aria-label":"이전 주", onclick:() => { S.wStart = addDays(wStart, -7); S.day = addDays(k, -7); render(); }}, "‹"),
     h("div", {class:"days"}, Array.from({length:7}, (_, i) => {
       const dk = addDays(wStart, i);
       return h("button", {class:"day" + (dk === k ? " sel" : "") + (dk === today ? " today" : ""),
         "aria-pressed": dk === k ? "true" : "false", "aria-label": mdw(dk),
         onclick:() => { S.day = dk; render(); }},
-        h("span", {class:"wd"}, dk === today ? "오늘" : WD[i]),
+        h("span", {class:"wd"}, dk === today ? "오늘" : WD[parseKey(dk).getDay()]),
         h("span", {class:"dn"}, parseKey(dk).getDate()),
         h("span", {class:"dot " + dayStatus(dk, today)}));
     })),
-    h("button", {class:"icon-btn", "aria-label":"다음 주", onclick:() => { S.day = addDays(k, 7); render(); }}, "›")
+    h("button", {class:"icon-btn", "aria-label":"다음 주", onclick:() => { S.wStart = addDays(wStart, 7); S.day = addDays(k, 7); render(); }}, "›")
   ));
 
   if (S.mode === "loading" && !S.gotMeds) { root.append(h("div", {class:"empty"}, h("p", null, "약 목록을 불러오는 중이에요."))); return; }
@@ -824,7 +827,7 @@ function toast(msg, undo) {
 /* ---------- 화면 전환 ---------- */
 const HASH = {day:"today", meds:"meds", log:"log"};
 function go(v) { S.view = v; if (location.hash !== "#" + HASH[v]) history.replaceState(null, "", "#" + HASH[v]); render(); window.scrollTo(0, 0); }
-document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { if (b.dataset.view === "day" && S.view === "day") S.day = todayKey(); go(b.dataset.view); }));
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { if (b.dataset.view === "day" && S.view === "day") { S.day = todayKey(); S.wStart = null; } go(b.dataset.view); }));
 function fromHash() { const v = Object.keys(HASH).find(k => "#" + HASH[k] === location.hash); if (v) S.view = v; }
 window.addEventListener("hashchange", () => { fromHash(); render(); });
 
@@ -872,7 +875,7 @@ async function boot() {
   if (!S.myName) setTimeout(() => { if ($("#sheetWrap").hidden) askName(null); }, 800);
 }
 setInterval(() => { if (S.mode !== "nofamily" && S.view === "day" && S.day === todayKey() && $("#sheetWrap").hidden) renderDay(); }, 60000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && S.mode !== "nofamily") { render(); refreshPushState(); navigator.serviceWorker?.getRegistration().then(r => r && r.update()).catch(() => {}); } });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.mode !== "nofamily") { if (S.openedOn !== todayKey()) { S.openedOn = todayKey(); S.day = S.openedOn; S.wStart = null; } render(); refreshPushState(); navigator.serviceWorker?.getRegistration().then(r => r && r.update()).catch(() => {}); } });
 boot();
 </script>
 </body>

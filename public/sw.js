@@ -1,5 +1,5 @@
 // 나미 투약 수첩 서비스워커 — 화면을 고치면 CACHE 버전을 하나 올린다
-const CACHE = "nami-v4";
+const CACHE = "nami-v5";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
