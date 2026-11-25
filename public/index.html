@@ -659,7 +659,7 @@ async function previewPush() {
 async function openBellSheet() {
   const body = h("div");
   const close = h("div", {class:"sheet-foot"}, h("span"), h("div", {class:"right"}, h("button", {class:"btn ghost", type:"button", onclick: closeSheet}, "닫기")));
-  const how = h("p", {class:"info"}, "약 먹일 시간이 되면 알림이 와요. 30분이 지나도 아무도 체크하지 않으면 한 번 더 알려요. 누군가 ‘먹였어요’를 누르면 그 약 알림은 더 오지 않아요. 알림은 5~15분 늦게 올 수 있어요.");
+  const how = h("p", {class:"info"}, "약 먹일 시간이 되면 알림이 와요. 15분이 지나도 아무도 체크하지 않으면 한 번 더 알려요. 누군가 ‘먹였어요’를 누르면 그 약 알림은 더 오지 않아요. 알림은 최대 5분 늦게 올 수 있어요.");
   if (!pushSupported()) {
     if (isIOS && !isStandalone()) {
       body.append(how, h("p", {class:"info", style:"color:var(--fg);font-weight:700"}, "아이폰은 홈 화면에 추가한 뒤에 알림을 켤 수 있어요."),

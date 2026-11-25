@@ -1,6 +1,6 @@
 // 나미 투약 알림 발송기 — GitHub Actions가 5분마다 실행한다.
 // 오늘(한국 시간) 먹일 시간이 지났는데 아무도 체크하지 않은 약이 있으면
-// 알림을 켠 휴대폰마다 푸시를 보낸다. 1차: 시간이 되면, 2차: 30분 뒤에도 기록이 없으면.
+// 알림을 켠 휴대폰마다 푸시를 보낸다. 1차: 시간이 되면, 2차: 15분 뒤에도 기록이 없으면.
 import webpush from "web-push";
 
 const env = process.env;
@@ -13,7 +13,7 @@ for (const [k, v] of Object.entries({FIREBASE_API_KEY: API_KEY, FAMILY_ID: FAMIL
 if (!DRY) webpush.setVapidDetails(SITE, env.VAPID_PUBLIC, env.VAPID_PRIVATE);
 
 const ROOT = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/families/${FAMILY}`;
-const REMIND_AFTER = 30;   // 분
+const REMIND_AFTER = 15;   // 분
 const WINDOW = 180;        // 이보다 오래된 투약은 알리지 않는다(분)
 
 /* Firestore REST 값 <-> JS 값 */
