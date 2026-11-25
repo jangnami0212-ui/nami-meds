@@ -1,0 +1,13 @@
+name = "nami-reminders"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+workers_dev = false   # 주소 없이 예약 실행만 쓴다
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+FIREBASE_PROJECT = "nami-meds-app"
+SITE_URL = "https://nami-meds-app.web.app"
+
+# 비밀값(wrangler secret put): FIREBASE_API_KEY, FAMILY_ID, VAPID_PUBLIC, VAPID_PRIVATE, RUN_KEY
