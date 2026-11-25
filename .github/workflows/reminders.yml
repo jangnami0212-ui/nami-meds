@@ -2,7 +2,7 @@ name: medication-reminders
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # 5분마다 (GitHub 사정으로 몇 분 늦을 수 있음)
+    - cron: "2-59/5 * * * *"   # 5분마다 (GitHub 사정으로 몇 분 늦을 수 있음)
   workflow_dispatch: {}
 
 permissions:
