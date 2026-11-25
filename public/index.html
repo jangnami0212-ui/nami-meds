@@ -865,11 +865,14 @@ async function boot() {
   subscribe();
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").then(refreshPushState).catch(e => console.error(e));
+    // 새 버전이 올라오면 화면을 한 번 새로 불러온다 (홈 화면 앱은 닫지 않으면 옛 화면이 남는다)
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !S.reloading) { S.reloading = true; location.reload(); } });
   }
   if (!S.myName) setTimeout(() => { if ($("#sheetWrap").hidden) askName(null); }, 800);
 }
 setInterval(() => { if (S.mode !== "nofamily" && S.view === "day" && S.day === todayKey() && $("#sheetWrap").hidden) renderDay(); }, 60000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && S.mode !== "nofamily") { render(); refreshPushState(); } });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.mode !== "nofamily") { render(); refreshPushState(); navigator.serviceWorker?.getRegistration().then(r => r && r.update()).catch(() => {}); } });
 boot();
 </script>
 </body>
