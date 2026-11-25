@@ -1,9 +1,9 @@
 // 나미 투약 알림 발송기 (Cloudflare Workers) — 5분마다 정확히 실행된다.
 // 오늘(한국 시간) 먹일 시간이 지났는데 아무도 체크하지 않은 약이 있으면
-// 알림을 켠 휴대폰마다 푸시를 보낸다. 1차: 시간이 되면, 2차: 15분 뒤에도 기록이 없으면.
+// 알림을 켠 휴대폰마다 푸시를 보낸다. 1차: 시간이 되면, 2차: 15분 뒤, 3차: 1시간 뒤에도 기록이 없으면.
 // 웹 푸시 암호화(aes128gcm)와 VAPID 서명은 WebCrypto로 직접 한다.
 
-const REMIND_AFTER = 15; // 분
+const REMINDERS = [15, 60]; // 다시 알릴 시점(분): 2차, 3차
 const WINDOW = 180;      // 이보다 오래된 투약은 알리지 않는다(분)
 
 export default {
@@ -93,10 +93,9 @@ async function run(env, {dry = false} = {}) {
       if (age < 0 || age > WINDOW) continue;
       if (entries[key]) continue;
       const stage = sent[key] || 0;
-      let next = 0;
-      if (stage === 0) next = age >= REMIND_AFTER ? 2 : 1;
-      else if (stage === 1 && age >= REMIND_AFTER) next = 2;
-      if (!next) continue;
+      const due = 1 + REMINDERS.filter(a => age >= a).length; // 지금 보내야 할 단계
+      if (due <= stage) continue;
+      const next = due;
       const g = `${t}|${next}`;
       if (!groups.has(g)) groups.set(g, []);
       groups.get(g).push(m);
@@ -107,7 +106,7 @@ async function run(env, {dry = false} = {}) {
     const [t, stage] = g.split("|");
     const what = ms.map(m => `${m.name}${m.dose ? " " + m.dose : ""}`).join(", ");
     return {
-      title: stage === "1" ? `${petName} 약 먹일 시간이에요` : `${petName} 약, 아직 기록이 없어요`,
+      title: stage === "1" ? `${petName} 약 먹일 시간이에요` : stage === "2" ? `${petName} 약, 아직 기록이 없어요` : `${petName} 약, 1시간째 기록이 없어요`,
       body: stage === "1" ? `${t} · ${what}` : `${t} 약을 먹였다면 앱에서 체크해 주세요 · ${what}`,
       tag: `nami-${today}-${t}`,
       url: `${SITE}/?f=${env.FAMILY_ID}`,

@@ -1,6 +1,6 @@
 // 나미 투약 알림 발송기 — GitHub Actions가 5분마다 실행한다.
 // 오늘(한국 시간) 먹일 시간이 지났는데 아무도 체크하지 않은 약이 있으면
-// 알림을 켠 휴대폰마다 푸시를 보낸다. 1차: 시간이 되면, 2차: 15분 뒤에도 기록이 없으면.
+// 알림을 켠 휴대폰마다 푸시를 보낸다. 1차: 시간이 되면, 2차: 15분 뒤, 3차: 1시간 뒤에도 기록이 없으면.
 import webpush from "web-push";
 
 const env = process.env;
@@ -13,7 +13,7 @@ for (const [k, v] of Object.entries({FIREBASE_API_KEY: API_KEY, FAMILY_ID: FAMIL
 if (!DRY) webpush.setVapidDetails(SITE, env.VAPID_PUBLIC, env.VAPID_PRIVATE);
 
 const ROOT = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/families/${FAMILY}`;
-const REMIND_AFTER = 15;   // 분
+const REMINDERS = [15, 60]; // 다시 알릴 시점(분): 2차, 3차
 const WINDOW = 180;        // 이보다 오래된 투약은 알리지 않는다(분)
 
 /* Firestore REST 값 <-> JS 값 */
@@ -89,10 +89,9 @@ for (const m of meds) {
     if (age < 0 || age > WINDOW) continue;
     if (entries[key]) continue;               // 누군가 먹였거나 건너뜀
     const stage = sent[key] || 0;
-    let next = 0;
-    if (stage === 0) next = age >= REMIND_AFTER ? 2 : 1;
-    else if (stage === 1 && age >= REMIND_AFTER) next = 2;
-    if (!next) continue;
+    const due = 1 + REMINDERS.filter(a => age >= a).length; // 지금 보내야 할 단계
+    if (due <= stage) continue;
+    const next = due;
     const g = `${t}|${next}`;
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(m);
@@ -104,7 +103,7 @@ const messages = [...groups.entries()].map(([g, ms]) => {
   const [t, stage] = g.split("|");
   const what = ms.map(m => `${m.name}${m.dose ? " " + m.dose : ""}`).join(", ");
   return {
-    title: stage === "1" ? `${petName} 약 먹일 시간이에요` : `${petName} 약, 아직 기록이 없어요`,
+    title: stage === "1" ? `${petName} 약 먹일 시간이에요` : stage === "2" ? `${petName} 약, 아직 기록이 없어요` : `${petName} 약, 1시간째 기록이 없어요`,
     body: stage === "1" ? `${t} · ${what}` : `${t} 약을 먹였다면 앱에서 체크해 주세요 · ${what}`,
     tag: `nami-${today}-${t}`,
     url: `${SITE}/?f=${FAMILY}`,
